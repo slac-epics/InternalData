@@ -1,0 +1,7 @@
+This module provides a way to connect EPICS PVs with the internal variables 
+and waveforms of the user C/C++ program. It provides functions of:
+- Automatic generate EPICS PVs for internal variables and waveforms
+- Support identifying waveform record for input or output
+- Automatic generate save/restore PV list
+- Synchronize PV values with internal variables and waveforms
+
