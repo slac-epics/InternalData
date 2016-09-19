@@ -7,6 +7,10 @@
  * Created by: Zheqiao Geng, gengzq@slac.stanford.edu
  * Created on: 2011.05.17
  * Description: Initial creation
+ *
+ * Modified by: Zheqiao Geng
+ * Modified on: 2/7/2013
+ * Description: allow to specify the path for saving the files
  ****************************************************/
 #include "InternalData.h"
 #include "recordGenerate.h"
@@ -87,8 +91,12 @@ static char *getSystemTime()
 /**
  * Save the record list and the save/restore request file
  */ 
-static int INTD_func_genRecordList(const char *fileName, const char *srFileName)
+static int INTD_func_genRecordList(const char *path, const char *fileName, const char *srFileName)
 {
+    char var_fullListFileName[256] = "";
+    char var_fullSRFileName[256]   = "";
+
+    char var_modName[128]    = "";
     char var_recName[128]    = "";                                   /* record name */
     char var_scanMethod[128] = "";
     char var_pno[128]        = "";
@@ -102,9 +110,22 @@ static int INTD_func_genRecordList(const char *fileName, const char *srFileName)
     /* check the input */
     if(!fileName || !fileName[0] || !srFileName || !srFileName[0]) return -1;
 
+    /* generate the full file names */
+    if(path && path[0]) {
+        strcpy(var_fullListFileName, path);
+        strcpy(var_fullSRFileName,   path);
+        strcat(var_fullListFileName, "/");
+        strcat(var_fullSRFileName,   "/");
+        strcat(var_fullListFileName, fileName);
+        strcat(var_fullSRFileName,   srFileName);
+    } else {
+        strcpy(var_fullListFileName, fileName);
+        strcpy(var_fullSRFileName,   srFileName);
+    }
+
     /* open the file */
-    var_outFile     = fopen(fileName,   "w");
-    var_outFile_sr  = fopen(srFileName, "w");
+    var_outFile     = fopen(var_fullListFileName,   "w");
+    var_outFile_sr  = fopen(var_fullSRFileName,     "w");
 
     if(!var_outFile || !var_outFile_sr) {
         return -1;
@@ -128,6 +149,7 @@ static int INTD_func_genRecordList(const char *fileName, const char *srFileName)
         ptr_dataNode = (INTD_struc_node *)ellNext(&ptr_dataNode -> node)) {
         
         /* get the necessary information */
+        strncpy(var_modName,    ptr_dataNode -> moduleName, 128);                           /* get module name */
         strncpy(var_recName,    ptr_dataNode -> dataName, 128);                             /* record name */
         strncpy(var_scanMethod, INTD_gvar_scanStrs[(int)ptr_dataNode -> scanType], 128);    /* scan method */
         sprintf(var_pno, "%d", ptr_dataNode -> pno);                                        /* point number (only used for waveform) */
@@ -148,74 +170,74 @@ static int INTD_func_genRecordList(const char *fileName, const char *srFileName)
         
         /* generate the string for record */
         switch(ptr_dataNode -> recordType) {
-            case INTD_AO:       fprintf(var_outFile, "%s\tao\t%s\tDOUBLE\t1\n",         var_recName, var_scanMethod); 
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s\n", var_recName);  
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.HIHI\n", var_recName);  
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.HIGH\n", var_recName);  
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.LOW\n",  var_recName);  
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.LOLO\n", var_recName); break;
+            case INTD_AO:       fprintf(var_outFile, "%s:%s\tao\t%s\tDOUBLE\t1\n",    var_modName, var_recName, var_scanMethod); 
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s\n",      var_modName, var_recName);  
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.HIHI\n", var_modName, var_recName);  
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.HIGH\n", var_modName, var_recName);  
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.LOW\n",  var_modName, var_recName);  
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.LOLO\n", var_modName, var_recName); break;
 
-            case INTD_AI:       fprintf(var_outFile, "%s\tai\t%s\tDOUBLE\t1\n",         var_recName, var_scanMethod);   break;
+            case INTD_AI:       fprintf(var_outFile, "%s:%s\tai\t%s\tDOUBLE\t1\n",    var_modName, var_recName, var_scanMethod);   break;
 
-            case INTD_BO:       fprintf(var_outFile, "%s\tbo\t%s\tUSHORT\t1\n",         var_recName, var_scanMethod);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.ZNAM\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.ONAM\n", var_recName); break;
+            case INTD_BO:       fprintf(var_outFile, "%s:%s\tbo\t%s\tUSHORT\t1\n",    var_modName, var_recName, var_scanMethod);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s\n",      var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.ZNAM\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.ONAM\n", var_modName, var_recName); break;
 
-            case INTD_BI:       fprintf(var_outFile, "%s\tbi\t%s\tUSHORT\t1\n",         var_recName, var_scanMethod);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.ZNAM\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.ONAM\n", var_recName); break;
+            case INTD_BI:       fprintf(var_outFile, "%s:%s\tbi\t%s\tUSHORT\t1\n",    var_modName, var_recName, var_scanMethod);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.ZNAM\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.ONAM\n", var_modName, var_recName); break;
 
-            case INTD_LO:       fprintf(var_outFile, "%s\tlongout\t%s\tLONG\t1\n",      var_recName, var_scanMethod); 
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s\n", var_recName);  
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.HIHI\n", var_recName);  
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.HIGH\n", var_recName);  
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.LOW\n",  var_recName);  
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.LOLO\n", var_recName); break;
+            case INTD_LO:       fprintf(var_outFile, "%s:%s\tlongout\t%s\tLONG\t1\n", var_modName, var_recName, var_scanMethod); 
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s\n",      var_modName, var_recName);  
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.HIHI\n", var_modName, var_recName);  
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.HIGH\n", var_modName, var_recName);  
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.LOW\n",  var_modName, var_recName);  
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.LOLO\n", var_modName, var_recName); break;
 
-            case INTD_LI:       fprintf(var_outFile, "%s\tlongin\t%s\tLONG\t1\n",       var_recName, var_scanMethod);   break;
+            case INTD_LI:       fprintf(var_outFile, "%s:%s\tlongin\t%s\tLONG\t1\n",  var_modName, var_recName, var_scanMethod);   break;
 
-            case INTD_MBBO:     fprintf(var_outFile, "%s\tmbbo\t%s\tULONG\t1\n",        var_recName, var_scanMethod);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.ZRST\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.ONST\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.TWST\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.THST\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.FRST\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.FVST\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.SXST\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.SVST\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.EIST\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.NIST\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.TEST\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.ELST\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.TVST\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.TTST\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.FTST\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.FFST\n", var_recName); break;
+            case INTD_MBBO:     fprintf(var_outFile, "%s:%s\tmbbo\t%s\tULONG\t1\n",   var_modName, var_recName, var_scanMethod);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s\n",      var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.ZRST\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.ONST\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.TWST\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.THST\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.FRST\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.FVST\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.SXST\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.SVST\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.EIST\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.NIST\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.TEST\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.ELST\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.TVST\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.TTST\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.FTST\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.FFST\n", var_modName, var_recName); break;
 
-            case INTD_MBBI:     fprintf(var_outFile, "%s\tmbbi\t%s\tULONG\t1\n",        var_recName, var_scanMethod);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.ZRST\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.ONST\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.TWST\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.THST\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.FRST\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.FVST\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.SXST\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.SVST\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.EIST\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.NIST\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.TEST\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.ELST\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.TVST\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.TTST\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.FTST\n", var_recName);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s.FFST\n", var_recName); break;
+            case INTD_MBBI:     fprintf(var_outFile, "%s:%s\tmbbi\t%s\tULONG\t1\n",   var_modName, var_recName, var_scanMethod);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.ZRST\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.ONST\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.TWST\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.THST\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.FRST\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.FVST\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.SXST\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.SVST\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.EIST\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.NIST\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.TEST\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.ELST\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.TVST\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.TTST\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.FTST\n", var_modName, var_recName);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s.FFST\n", var_modName, var_recName); break;
 
-            case INTD_WFO:      fprintf(var_outFile, "%s\twaveform(out)\t%s\t%s\t%s\n", var_recName, var_scanMethod, var_dataType, var_pno);
-                                fprintf(var_outFile_sr, "$(name_space):$(module):%s\n", var_recName); break;
+            case INTD_WFO:      fprintf(var_outFile, "%s:%s\twaveform(out)\t%s\t%s\t%s\n", var_modName, var_recName, var_scanMethod, var_dataType, var_pno);
+                                fprintf(var_outFile_sr, "$(name_space):%s:%s\n",           var_modName, var_recName); break;
 
-            case INTD_WFI:      fprintf(var_outFile, "%s\twaveform(in)\t%s\t%s\t%s\n",  var_recName, var_scanMethod, var_dataType, var_pno); break;
+            case INTD_WFI:      fprintf(var_outFile, "%s:%s\twaveform(in)\t%s\t%s\t%s\n",  var_modName, var_recName, var_scanMethod, var_dataType, var_pno); break;
             default: break;
         }            
 
@@ -478,20 +500,22 @@ int INTD_API_putData(INTD_struc_node *dataNode, unsigned int pno, void *data)
 /**
  * Generate records for the internal data
  * Input:
+ *   path:          the path for the file
  *   dbFileName:    full file name (including path) of the output db file
  * Return:
  *   0              : Successful
  *  -1              : Failed
  */
-int INTD_API_genRecord(const char *dbFileName)
+int INTD_API_genRecord(const char *path, const char *dbFileName)
 {
-    char var_recStr[512]     = "";                                   /* final string of the record */
+    char var_fullFileName[256] = "";
+    char var_recStr[512]       = "";                                   /* final string of the record */
 
-    char var_modName[128]    = "";
-    char var_recName[128]    = "";                                   /* record name */
-    char var_scanMethod[128] = "";
-    char var_pno[128]        = "";
-    char var_dataType[128]   = "";
+    char var_modName[128]      = "";
+    char var_recName[128]      = "";                                   /* record name */
+    char var_scanMethod[128]   = "";
+    char var_pno[128]          = "";
+    char var_dataType[128]     = "";
 
     char *timeStr;
 
@@ -502,11 +526,19 @@ int INTD_API_genRecord(const char *dbFileName)
     /* check the input */
     if(!dbFileName || !dbFileName[0]) return -1;
 
-    /* open the file */
-    var_outFile = fopen(dbFileName, "w");
+    /* generate the full file name and open the file */
+    if(path && path[0]) {
+        strcpy(var_fullFileName, path);
+        strcat(var_fullFileName, "/");
+        strcat(var_fullFileName, dbFileName);
+    } else {
+        strcpy(var_fullFileName, dbFileName);
+    }
+
+    var_outFile = fopen(var_fullFileName, "w");
 
     if(!var_outFile) {
-        printf("INTD_API_genRecord: Failed to create file of %s\n", dbFileName);
+        printf("INTD_API_genRecord: Failed to create file of %s\n", var_fullFileName);
         return -1;
     }
 
@@ -570,7 +602,7 @@ int INTD_API_genRecord(const char *dbFileName)
     fclose(var_outFile);
 
     /* record list and autosave list */
-    INTD_func_genRecordList("recordList.txt", "info_settings.req");
+    INTD_func_genRecordList(path, "recordList.txt", "info_settings.req");
 
     return 0;
 }

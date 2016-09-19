@@ -21,10 +21,11 @@ extern "C" {
  * IOC shell Routines
  *======================================*/
 /* INTD_API_genRecord */
-static const iocshArg        INTD_generateRecords_Arg0    = {"dbFileName", iocshArgString};
-static const iocshArg *const INTD_generateRecords_Args[1] = {&INTD_generateRecords_Arg0};
-static const iocshFuncDef    INTD_generateRecords_FuncDef = {"INTD_generateRecords", 1, INTD_generateRecords_Args};
-static void  INTD_generateRecords_CallFunc(const iocshArgBuf *args) {INTD_API_genRecord(args[0].sval);}
+static const iocshArg        INTD_generateRecords_Arg0    = {"path",       iocshArgString};
+static const iocshArg        INTD_generateRecords_Arg1    = {"dbFileName", iocshArgString};
+static const iocshArg *const INTD_generateRecords_Args[2] = {&INTD_generateRecords_Arg0, &INTD_generateRecords_Arg1};
+static const iocshFuncDef    INTD_generateRecords_FuncDef = {"INTD_generateRecords", 2, INTD_generateRecords_Args};
+static void  INTD_generateRecords_CallFunc(const iocshArgBuf *args) {INTD_API_genRecord(args[0].sval, args[1].sval);}
 
 /* INTD_API_syncWithRecords */
 static const iocshArg        INTD_syncWithRecords_Arg0    = {"enaCallback", iocshArgInt};

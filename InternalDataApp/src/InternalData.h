@@ -13,6 +13,10 @@
  * Modified by: Zheqiao Geng
  * Modified on: 2011.06.07
  * Description: Introduce the I/O interrupt scanning
+ *
+ * Modified by: Zheqiao Geng
+ * Modified on: 2/7/2013
+ * Description: allow to specify the path for saving the files
  ****************************************************/
 #ifndef INTERNAL_DATA_H
 #define INTERNAL_DATA_H
@@ -125,7 +129,7 @@ INTD_struc_node *INTD_API_findDataNode(const char *moduleName, const char *dataN
 int INTD_API_getData(INTD_struc_node *dataNode, unsigned int pno, void *data);
 int INTD_API_putData(INTD_struc_node *dataNode, unsigned int pno, void *data);
 
-int INTD_API_genRecord(const char *dbFileName);
+int INTD_API_genRecord(const char *path, const char *dbFileName);
 
 int INTD_API_syncWithRecords(int enaCallback);
 
